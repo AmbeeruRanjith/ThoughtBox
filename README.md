@@ -101,6 +101,7 @@ ThoughtBox/
 │
 └── README.md
 
+
 🔧 Setup Instructions
 1️⃣ Clone the Repository
 git clone https://github.com/AmbeeruRanjith/ThoughtBox.git
