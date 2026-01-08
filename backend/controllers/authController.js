@@ -14,13 +14,27 @@ const generateToken = (userId) => {
 // @access Public
 const registerUser = async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    const { username: rawUsername, email, password } = req.body;
+
+    // Normalize username
+    const username = rawUsername ? rawUsername.toLowerCase() : "";
 
     // Basic validation
     if (!username || !email || !password) {
       return res
         .status(400)
         .json({ message: "Please provide username, email and password" });
+    }
+
+    // Valid characters check
+    if (!/^[a-z0-9_]+$/.test(username)) {
+      return res.status(400).json({ message: "Username can only contain lowercase letters, numbers, and underscores" });
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ message: "Invalid email format" });
     }
 
     // Check if email or username already exists
@@ -80,8 +94,8 @@ const loginUser = async (req, res) => {
         .json({ message: "Please provide email and password" });
     }
 
-    // Find user by email
-    const user = await User.findOne({ email });
+    // Find user by email and explicitly select password
+    const user = await User.findOne({ email }).select("+password");
 
     if (!user) {
       return res.status(400).json({ message: "Invalid email or password" });

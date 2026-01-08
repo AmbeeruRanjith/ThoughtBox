@@ -51,19 +51,24 @@ const createPost = async (req, res) => {
 // =====================================
 const getAllPosts = async (req, res) => {
   try {
-    let { page = 1, limit = 10 } = req.query;
+    let { page = 1, limit = 10, search } = req.query;
 
     page = parseInt(page);
     limit = parseInt(limit);
     const skip = (page - 1) * limit;
 
-    const posts = await Post.find()
+    let query = {};
+    if (search) {
+      query = { $text: { $search: search } };
+    }
+
+    const posts = await Post.find(query)
       .populate("user", "username profilePic")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
 
-    const totalPosts = await Post.countDocuments();
+    const totalPosts = await Post.countDocuments(query);
 
     return res.status(200).json({
       success: true,
@@ -206,7 +211,7 @@ const toggleLikePost = async (req, res) => {
     const post = await Post.findById(postId);
     if (!post) return res.status(404).json({ message: "Post not found" });
 
-    const isLiked = post.likes.includes(userId);
+    const isLiked = post.likes.some(id => id.toString() === userId.toString());
 
     if (isLiked) {
       post.likes = post.likes.filter(id => id.toString() !== userId.toString());
@@ -238,10 +243,10 @@ const toggleSavePost = async (req, res) => {
     const postId = req.params.id;
     const user = req.user;
 
-    const isSaved = user.savedPosts.includes(postId);
+    const isSaved = user.savedPosts.some(id => id.toString() === postId.toString());
 
     if (isSaved) {
-      user.savedPosts = user.savedPosts.filter(id => id.toString() !== postId);
+      user.savedPosts = user.savedPosts.filter(id => id.toString() !== postId.toString());
     } else {
       user.savedPosts.push(postId);
     }
@@ -260,6 +265,64 @@ const toggleSavePost = async (req, res) => {
   }
 };
 
+// =====================================
+// GET POST FEED (FOLLOWED USERS)
+// =====================================
+const getFeed = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    const following = user.following;
+
+    let { page = 1, limit = 10 } = req.query;
+    page = parseInt(page);
+    limit = parseInt(limit);
+    const skip = (page - 1) * limit;
+
+    const posts = await Post.find({ user: { $in: following } })
+      .populate("user", "username profilePic")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const totalPosts = await Post.countDocuments({ user: { $in: following } });
+
+    return res.status(200).json({
+      success: true,
+      page,
+      limit,
+      totalPosts,
+      totalPages: Math.ceil(totalPosts / limit),
+      posts,
+    });
+  } catch (error) {
+    console.error("Get feed error:", error.message);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
+// =====================================
+// GET USERS WHO LIKED A POST
+// =====================================
+const getPostLikes = async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id).populate(
+      "likes",
+      "username profilePic"
+    );
+
+    if (!post) return res.status(404).json({ message: "Post not found" });
+
+    return res.status(200).json({
+      success: true,
+      likes: post.likes,
+      likeCount: post.likeCount,
+    });
+  } catch (error) {
+    console.error("Get post likes error:", error.message);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
 module.exports = {
   createPost,
   getAllPosts,
@@ -269,4 +332,6 @@ module.exports = {
   deletePost,
   toggleLikePost,
   toggleSavePost,
+  getPostLikes,
+  getFeed,
 };

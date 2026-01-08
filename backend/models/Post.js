@@ -35,8 +35,17 @@ const postSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+
+    commentCount: {
+      type: Number,
+      default: 0,
+    },
   },
   { timestamps: true }
 );
+
+// Add indexes
+postSchema.index({ user: 1 });
+postSchema.index({ title: "text", description: "text" });
 
 module.exports = mongoose.model("Post", postSchema);

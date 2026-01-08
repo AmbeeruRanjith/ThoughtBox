@@ -24,6 +24,9 @@ const addComment = async (req, res) => {
       comment,
     });
 
+    post.commentCount += 1;
+    await post.save();
+
     return res.status(201).json({
       success: true,
       message: "Comment added",
@@ -85,8 +88,50 @@ const getMyCommentsOnPost = async (req, res) => {
   }
 };
 
+// =====================================
+// DELETE COMMENT
+// DELETE /api/comments/:id
+// =====================================
+const deleteComment = async (req, res) => {
+  try {
+    const commentId = req.params.id;
+    const comment = await Comment.findById(commentId);
+
+    if (!comment) {
+      return res.status(404).json({ message: "Comment not found" });
+    }
+
+    const post = await Post.findById(comment.post);
+
+    // Allow delete if: User is Comment Owner OR User is Post Owner
+    if (
+      comment.user.toString() !== req.user._id.toString() &&
+      post.user.toString() !== req.user._id.toString()
+    ) {
+      return res.status(403).json({
+        message: "Not authorized to delete this comment",
+      });
+    }
+
+    await Comment.findByIdAndDelete(commentId);
+
+    post.commentCount = Math.max(0, post.commentCount - 1);
+    await post.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Comment deleted",
+    });
+
+  } catch (error) {
+    console.error("Delete comment error:", error.message);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
 module.exports = {
   addComment,
   getCommentsForPost,
-  getMyCommentsOnPost
+  getMyCommentsOnPost,
+  deleteComment,
 };

@@ -3,7 +3,9 @@ const {
   updateProfile,
   deleteAccount,
   getSavedPosts,
-  getLikedPosts
+  getLikedPosts,
+  getUserProfile,
+  followUser
 } = require("../controllers/userController");
 
 const { protect } = require("../middleware/authMiddleware");
@@ -22,5 +24,11 @@ router.get("/saved", protect, getSavedPosts);
 
 // GET LIKED POSTS
 router.get("/liked", protect, getLikedPosts);
+
+// GET PUBLIC PROFILE
+router.get("/:id", protect, getUserProfile);
+
+// FOLLOW / UNFOLLOW USER
+router.put("/:id/follow", protect, followUser);
 
 module.exports = router;
