@@ -61,7 +61,7 @@ const PostCard = ({ post }) => {
 
             <Link to={`/post/${post._id}`} className="post-content-link">
                 <h3 className="post-title">{post.title}</h3>
-                <p className="post-desc">{post.description.substring(0, 100)}...</p>
+                <p className="post-desc">{post.description}</p>
                 {post.image && (
                     <div className="post-image-container">
                         <img src={post.image} alt={post.title} className="post-image" />
